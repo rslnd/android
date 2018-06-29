@@ -7,15 +7,14 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
     private final String TAG = "MainActivity";
@@ -24,6 +23,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Temporarily set to false for uninstalling
         ensureDeviceOwner(true);
 
         makeFullscreenInitial();
@@ -131,21 +131,10 @@ public class MainActivity extends Activity {
     private void loadWebView() {
         final String customerUrl = getResources().getString(R.string.customer_url);
 
-        class SafeWebViewClient extends WebViewClient {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                if (request.getUrl().toString().equals(customerUrl)) {
-                    return false;
-                } else {
-                    Log.e(TAG, "Disallowed loading URL " + request.getUrl());
-                    return true;
-                }
-            }
-        }
-
         WebView webView = (WebView) findViewById(R.id.webview);
 
-        webView.setWebViewClient(new SafeWebViewClient());
+        webView.setBackgroundColor(ContextCompat.getColor(this, R.color.colorBackground));
+        webView.setWebViewClient(new SafeWebViewClient(customerUrl));
 
         WebSettings webSettings = webView.getSettings();
 
@@ -169,9 +158,7 @@ public class MainActivity extends Activity {
             if (dpm.isLockTaskPermitted(getPackageName())) {
                 dpm.lockNow();
             }
-
         }
-
     }
 
     private void requestTaskLock() {
@@ -181,6 +168,8 @@ public class MainActivity extends Activity {
         if (dpm.isDeviceOwnerApp(getPackageName())) {
             String[] packages = {getPackageName()};
             dpm.setLockTaskPackages(deviceAdminReceiver, packages);
+            dpm.setCameraDisabled(deviceAdminReceiver, true);
+            dpm.setStatusBarDisabled(deviceAdminReceiver, true);
 
             if (dpm.isLockTaskPermitted(getPackageName())) {
                 startLockTask();
