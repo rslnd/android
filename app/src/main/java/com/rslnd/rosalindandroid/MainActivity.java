@@ -66,6 +66,11 @@ public class MainActivity extends Activity {
         return result;
     }
 
+    @Override
+    public void onBackPressed() {
+        // noop
+    }
+
     private void ensureDeviceOwner(boolean enable) {
         if (enable) {
             DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
