@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">RosalindAndroid</string>
-    <string name="customer_url">https://hautzentrum-wien.at.rslnd.com</string>
+    <string name="customer_url">http://10.0.0.16:3000</string>
+    <string name="customer_url_production">https://hautzentrum-wien.at.rslnd.com</string>
 </resources>
