@@ -136,15 +136,19 @@ public class MainActivity extends Activity {
     private void loadWebView() {
         final String customerUrl = getResources().getString(R.string.customer_url);
 
-        WebView webView = (WebView) findViewById(R.id.webview);
+        WebView.setWebContentsDebuggingEnabled(false);
+
+        WebView webView = findViewById(R.id.webview);
 
         webView.setBackgroundColor(ContextCompat.getColor(this, R.color.colorBackground));
         webView.setWebViewClient(new SafeWebViewClient(customerUrl));
+        webView.addJavascriptInterface(new NativeBridge(this), "native");
 
         WebSettings webSettings = webView.getSettings();
 
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
+
         webSettings.setJavaScriptCanOpenWindowsAutomatically(false);
         webSettings.setSupportMultipleWindows(false);
         webSettings.setSupportZoom(false);
