@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+import android.os.UserManager;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -27,8 +28,10 @@ public class MainActivity extends Activity {
         ensureDeviceOwner(true);
 
         makeFullscreenInitial();
-
         setContentView(R.layout.activity_main);
+        makeFullscreen();
+
+        SoftKeyboardPanWorkaround.assistActivity(this);
 
         loadWebView();
     }
@@ -76,25 +79,35 @@ public class MainActivity extends Activity {
             DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
             ComponentName deviceAdminReceiver = new ComponentName(this, AdminReceiver.class);
 
-            if (dpm.isDeviceOwnerApp(getPackageName())) {
+            if (dpm != null && dpm.isDeviceOwnerApp(getPackageName())) {
                 Log.i(TAG, "This is the device owner");
+                setPolicies(true);
             } else {
                 Log.e(TAG, "Not device owner, run `adb shell dpm set-device-owner " + getPackageName() + "/.AdminReceiver`");
-                System.exit(3);
             }
         } else {
             Log.i(TAG, "Clearing device owner");
             ComponentName devAdminReceiver = new ComponentName(this, AdminReceiver.class);
             DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
-            dpm.clearDeviceOwnerApp(getPackageName());
-            Log.i(TAG, "Cleared device owner");
-            System.exit(0);
+
+            if (dpm != null && dpm.isDeviceOwnerApp(getPackageName())) {
+                stopLockTask();
+                setPolicies(false);
+                dpm.clearDeviceOwnerApp(getPackageName());
+                Log.i(TAG, "Cleared device owner");
+            }
         }
     }
 
     private void makeFullscreenInitial() {
         // Restart after crash
         Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(this));
+
+        // Move view up when keyboard is visible
+        getWindow().setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE |
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+        );
 
         // Prevent Screenshots
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
@@ -113,8 +126,7 @@ public class MainActivity extends Activity {
 
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-        makeFullscreen();
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
     }
 
     private void makeFullscreen() {
@@ -148,10 +160,12 @@ public class MainActivity extends Activity {
 
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
-
+        webSettings.setSaveFormData(false);
+        webSettings.setSavePassword(false);
         webSettings.setJavaScriptCanOpenWindowsAutomatically(false);
         webSettings.setSupportMultipleWindows(false);
         webSettings.setSupportZoom(false);
+        webSettings.setBuiltInZoomControls(false);
         webSettings.setAllowFileAccess(false);
 
         webView.loadUrl(customerUrl);
@@ -159,14 +173,10 @@ public class MainActivity extends Activity {
 
     private void lockScreen() {
         DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
-        ComponentName deviceAdminReceiver = new ComponentName(this, AdminReceiver.class);
 
-        if (dpm.isDeviceOwnerApp(getPackageName())) {
-            String[] packages = {getPackageName()};
-            dpm.setLockTaskPackages(deviceAdminReceiver, packages);
-            if (dpm.isLockTaskPermitted(getPackageName())) {
-                dpm.lockNow();
-            }
+        if(dpm != null) {
+            dpm.lockNow();
+            Log.i(TAG, "Device locked");
         }
     }
 
@@ -174,8 +184,8 @@ public class MainActivity extends Activity {
         DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         ComponentName deviceAdminReceiver = new ComponentName(this, AdminReceiver.class);
 
-        if (dpm.isDeviceOwnerApp(getPackageName())) {
-            String[] packages = {getPackageName()};
+        if (dpm != null && dpm.isDeviceOwnerApp(getPackageName())) {
+            String[] packages = {getPackageName(), "com.android.keyguard"};
             dpm.setLockTaskPackages(deviceAdminReceiver, packages);
             dpm.setCameraDisabled(deviceAdminReceiver, true);
             dpm.setStatusBarDisabled(deviceAdminReceiver, true);
@@ -184,13 +194,34 @@ public class MainActivity extends Activity {
                 startLockTask();
                 Log.i(TAG, "Task lock active");
             } else {
-                startLockTask();
+                stopLockTask();
                 Log.e(TAG, "Task lock not permitted");
             }
 
         } else {
-            startLockTask();
+            stopLockTask();
             Log.e(TAG, "Not device owner");
+        }
+    }
+
+    private void setPolicies(boolean isRestricted) {
+        setUserRestriction(UserManager.DISALLOW_SAFE_BOOT, isRestricted);
+        setUserRestriction(UserManager.DISALLOW_FACTORY_RESET, isRestricted);
+        setUserRestriction(UserManager.DISALLOW_ADD_USER, isRestricted);
+        setUserRestriction(UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA, isRestricted);
+        setUserRestriction(UserManager.DISALLOW_ADJUST_VOLUME, isRestricted);
+    }
+
+    private void setUserRestriction(String restriction, boolean disallow){
+        DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+        ComponentName deviceAdminReceiver = new ComponentName(this, AdminReceiver.class);
+
+        if (dpm != null) {
+            if (disallow) {
+                dpm.addUserRestriction(deviceAdminReceiver,restriction);
+            } else {
+                dpm.clearUserRestriction(deviceAdminReceiver, restriction);
+            }
         }
     }
 }
