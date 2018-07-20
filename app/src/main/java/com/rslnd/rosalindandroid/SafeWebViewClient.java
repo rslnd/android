@@ -20,10 +20,10 @@ class SafeWebViewClient extends WebViewClient {
 
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-        if (request.getUrl().toString().equals(allowedUrl)) {
+        if (request.getUrl().toString().startsWith(allowedUrl)) {
             return false;
         } else {
-            Log.e(TAG, "Disallowed loading " + request.getUrl());
+            Log.e(TAG, "Disallowed loading " + request.getUrl() + " as it does not start with allowed url " + allowedUrl);
             return true;
         }
     }
