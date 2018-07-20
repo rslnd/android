@@ -25,5 +25,6 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     implementation 'com.android.support:appcompat-v7:26.+'
+    implementation 'com.google.code.gson:gson:2.8.5'
     testImplementation 'junit:junit:4.12'
 }

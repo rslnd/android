@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.UserManager;
@@ -34,6 +36,8 @@ public class MainActivity extends Activity {
         SoftKeyboardPanWorkaround.assistActivity(this);
 
         loadWebView();
+
+        registerReceiver(new PeripheralsReceiver(), new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
     }
 
     @Override
@@ -152,9 +156,13 @@ public class MainActivity extends Activity {
 
         WebView webView = findViewById(R.id.webview);
 
+        NativeBridge nativeBridge = new NativeBridge(this);
+        nativeBridge.setWebView(webView);
+
+        webView.addJavascriptInterface(nativeBridge, "native");
+
         webView.setBackgroundColor(ContextCompat.getColor(this, R.color.colorBackground));
         webView.setWebViewClient(new SafeWebViewClient(customerUrl));
-        webView.addJavascriptInterface(new NativeBridge(this), "native");
 
         WebSettings webSettings = webView.getSettings();
 
@@ -167,6 +175,7 @@ public class MainActivity extends Activity {
         webSettings.setSupportZoom(false);
         webSettings.setBuiltInZoomControls(false);
         webSettings.setAllowFileAccess(false);
+        webSettings.setAllowContentAccess(false);
 
         webView.loadUrl(customerUrl);
     }
