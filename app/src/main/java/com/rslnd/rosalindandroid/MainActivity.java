@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.UserManager;
 import android.support.v4.content.ContextCompat;
@@ -37,7 +38,13 @@ public class MainActivity extends Activity {
 
         loadWebView();
 
-        registerReceiver(new PeripheralsReceiver(), new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        PeripheralsReceiver peripheralsReceiver = new PeripheralsReceiver();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_SCREEN_ON);
+        intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
+        intentFilter.addAction(Intent.ACTION_BATTERY_CHANGED);
+        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(peripheralsReceiver, intentFilter);
     }
 
     @Override

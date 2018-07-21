@@ -3,6 +3,8 @@ package com.rslnd.rosalindandroid;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.BatteryManager;
 import android.util.Log;
 import java.util.HashMap;
@@ -18,8 +20,17 @@ public class PeripheralsReceiver extends BroadcastReceiver {
         String action = intent.getAction();
         if (action == null) { return; }
         switch (action) {
+            case Intent.ACTION_SCREEN_ON:
+                EventBroker.getInstance().emit("peripherals/screenOn", null);
+                break;
+            case Intent.ACTION_SCREEN_OFF:
+                EventBroker.getInstance().emit("peripherals/screenOff", null);
+                break;
             case Intent.ACTION_BATTERY_CHANGED:
                 onBatteryChange(context, intent);
+                break;
+            case ConnectivityManager.CONNECTIVITY_ACTION:
+                onConnectivityChange(context, intent);
                 break;
             default:
                 Log.w(TAG, "Received unknown intent: " + intent.getAction());
@@ -40,5 +51,28 @@ public class PeripheralsReceiver extends BroadcastReceiver {
         EventBroker.getInstance().emit("peripherals/batteryChange", payload);
 
         Log.i(TAG, "Battery state changed: " + status + " isCharging=" + isCharging + " batteryLevel=" + batteryLevel);
+    }
+
+    void onConnectivityChange(Context context, Intent intent) {
+        if (intent.getExtras() == null) { return; }
+
+        final ConnectivityManager connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        if (connectivityManager == null) { return; }
+
+        final NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        EventBroker eventBroker = EventBroker.getInstance();
+
+        if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
+            Log.i(TAG, "Network connected");
+            eventBroker.emit("peripherals/wifiConnected", null);
+        } else if (intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, Boolean.FALSE)) {
+            Log.d(TAG, "Network disconnected");
+            eventBroker.emit("peripherals/wifiDisconnected", null);
+        }
+    }
+
+    void onScreenChange(Context context, Intent intent) {
+
     }
 }
