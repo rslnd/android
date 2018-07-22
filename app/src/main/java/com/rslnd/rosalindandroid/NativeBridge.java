@@ -78,5 +78,7 @@ public class NativeBridge implements EventObserver {
 
         Log.i(TAG, "Registered event emitter inside webview");
 
+        String clientKey = new ClientKey(context).getKey();
+        setProperty("clientKey", clientKey);
     }
 }
