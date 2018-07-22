@@ -169,7 +169,7 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(nativeBridge, "native");
 
         webView.setBackgroundColor(ContextCompat.getColor(this, R.color.colorBackground));
-        webView.setWebViewClient(new SafeWebViewClient(customerUrl));
+        webView.setWebViewClient(new SafeWebViewClient(this, customerUrl));
 
         WebSettings webSettings = webView.getSettings();
 
